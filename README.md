@@ -20,9 +20,9 @@ Run
 TODO
 ----
 
-0) Better output format.
-1) Get URL to scrap from command line argument.
-2) Extract post dates and times from page.
-3) Download all post attachments.
+    0) Better output format.
+    1) Get URL to scrap from command line argument.
+    2) Extract post dates and times from page.
+    3) Download all post attachments.
 
 
