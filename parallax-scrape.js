@@ -22,8 +22,8 @@ function output(string) {
     process.stdout.write(string);
 }
 
-// Pretty print text, max 80 chars per line.
-function prettyPrint(text) {
+// Pretty print the post text, max 80 chars per line.
+function prettyPrintPost(text) {
     var words = [],
         lineLength = 0,
         word,
@@ -49,6 +49,39 @@ function prettyPrint(text) {
     output("\n");
 }
 
+// Pretty print dates
+function prettyPrintDate(text) {
+    var monthStr,
+        dateStr,
+        date;
+
+    // Get rid of junk after the actual date text.
+    text = text.trim().split(',')[0];
+
+    // Take care of relative dates
+    if ((text === 'Yesterday') || (text === 'Today')) {
+        date = new Date();
+        if (text === 'Yesterday') {
+            date.setDate(date.getDate() - 1);
+        }
+        monthStr = String(date.getMonth() + 1);
+        if (monthStr.length === 1) {
+            monthStr = '0' + monthStr;
+        }
+        output(monthStr + '-');
+        dateStr = String(date.getDate());
+        if (dateStr.length === 1) {
+            dateStr = '0' + dateStr;
+        }
+        output(dateStr + '-');
+        output(String(date.getFullYear()));
+        output(', ');
+    } else {
+        output(text);
+    }
+}
+
+
 // Create an HTML parser
 var parser = new htmlparser.Parser({
 
@@ -61,6 +94,14 @@ var parser = new htmlparser.Parser({
 	        if (tagname === 'span' && attribs.class === 'parauser') {
                 state = 'inparauser';
             }
+            if (tagname === 'span' && attribs.class === 'date') {
+                state = 'indate';
+            }
+            break;
+        case 'indate':
+            if (tagname === 'span' && attribs.class === 'time') {
+                state = 'intime';
+            }
             break;
         }
     },
@@ -68,10 +109,18 @@ var parser = new htmlparser.Parser({
     ontext: function (text) {
         switch (state) {
         case 'inPostText':
-            prettyPrint(text);
+            prettyPrintPost(text);
             break;
         case 'inparauser':
-            output('\n' + text + '\n');
+            output(text + '\n');
+            output('--------------------\n');
+            break;
+        case 'indate':
+            output('\n--------------------\n');
+            prettyPrintDate(text);
+            break;
+        case 'intime':
+            output(text + '\n');
             break;
         }
     },
@@ -85,8 +134,17 @@ var parser = new htmlparser.Parser({
             break;
         case 'inparauser':
             if (tagname === 'span') {
-                output('-----------------------\n');
                 state = 'initial';
+            }
+            break;
+        case 'indate':
+            if (tagname === 'span') {
+                state = 'initial';
+            }
+            break;
+        case 'intime':
+            if (tagname === 'span') {
+                state = 'indate';
             }
             break;
         }
