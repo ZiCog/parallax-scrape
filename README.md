@@ -3,6 +3,8 @@ parallax-scrape
 
 node.js program to Download a forum page from forums.parallax.com and extract posts as plain text.
 
+Output goes to standard output.
+
 Install
 -------
 
@@ -22,7 +24,6 @@ TODO
 
     0) Better output format.
     1) Get URL to scrap from command line argument.
-    2) Extract post dates and times from page.
-    3) Download all post attachments.
+    2) Download all post attachments.
 
 
