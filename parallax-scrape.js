@@ -10,7 +10,9 @@ var request = require("request");
 var htmlparser = require("htmlparser2");
 
 // The forum page's URL
-var url = 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
+//var url = 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
+var url = 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
+
 
 // Parser state.
 var state = 'initial';
@@ -40,9 +42,9 @@ function prettyPrint(text) {
             output("\n");
             lineLength = 0;
         } else {
-            output(word + " ");
             lineLength += word.length + 1;
         }
+        output(word + " ");
     }
     output("\n");
 }
