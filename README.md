@@ -1,7 +1,7 @@
 parallax-scrape
 ===============
 
-Download a forum page from forums.parallax.com and extract posts as plain text.
+node.js program to Download a forum page from forums.parallax.com and extract posts as plain text.
 
 Install
 -------
@@ -15,7 +15,7 @@ Install
 Run
 ---
 
-    $ parallax-scrape
+    $ node parallax-scrape
 
 TODO
 ----
