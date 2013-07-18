@@ -10,12 +10,18 @@ var request = require("request");
 var htmlparser = require("htmlparser2");
 
 // The forum page's URL
-//var url = 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
-var url = 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
-
+var url = 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog/page2';
+//var url = 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
 
 // Parser state.
 var state = 'initial';
+
+// Temporary store for tag attributes
+var attributes;
+
+// List of attachments to posts found in page
+var attachments = [];
+
 
 // Output function. Just write string to standard out.
 function output(string) {
@@ -31,6 +37,9 @@ function prettyPrintPost(text) {
 
     // Replace all HTML quote entities
     text = text.replace(/&quot;/g, '"');
+
+    // Replace stupid unicode separator line thingy
+    text = text.replace(/&#9620;/g, '_'); 
 
     // Split text into words.
     words = text.trim().split(" ");
@@ -75,10 +84,44 @@ function prettyPrintDate(text) {
         }
         output(dateStr + '-');
         output(String(date.getFullYear()));
-        output(', ');
     } else {
         output(text);
     }
+}
+
+function prettyPrintCode(text) {
+    var lines,
+        i;
+
+    lines = text.split('\n');
+    for (i = 0; i < lines.length; i += 1) {
+        output('        ');
+        output(lines[i] + '\n');
+    }
+}
+
+
+function outputPost(text) {
+    prettyPrintPost(text);
+}
+
+function outputUser(text) {
+    output(text + '\n');    
+    output('\n--------------------\n');
+}
+
+function outputDate(text) {
+    output('\n--------------------\n');
+    prettyPrintDate(text);
+    output(', ');
+}
+
+function outputTime(text) {
+    output(text + '\n');
+}
+
+function outputCode(text) {
+    prettyPrintCode(text);
 }
 
 
@@ -89,13 +132,28 @@ var parser = new htmlparser.Parser({
         switch (state) {
         case 'initial':
 	        if (tagname === 'blockquote' && attribs.class === 'postcontent restore ') {
-                state = 'inPostText';
+                state = 'inpost';
             }
 	        if (tagname === 'span' && attribs.class === 'parauser') {
                 state = 'inparauser';
             }
             if (tagname === 'span' && attribs.class === 'date') {
                 state = 'indate';
+            }
+            if (tagname === 'div' && attribs.class === 'attachments') {
+                state = 'inattachments';
+            }
+            break;
+        case 'inpost':
+            if (tagname === 'pre' && attribs.class === 'bbcode_code') {
+                state = 'incode';
+            }
+            break;
+        case 'inattachments':
+            if (tagname === 'a') {
+                console.log (attribs.href);
+                attributes = attribs;
+                state = 'inattachment';
             }
             break;
         case 'indate':
@@ -108,26 +166,33 @@ var parser = new htmlparser.Parser({
 
     ontext: function (text) {
         switch (state) {
-        case 'inPostText':
-            prettyPrintPost(text);
+        case 'inpost':
+            outputPost(text);
             break;
         case 'inparauser':
-            output(text + '\n');
-            output('--------------------\n');
+            outputUser(text);
             break;
         case 'indate':
-            output('\n--------------------\n');
-            prettyPrintDate(text);
+            outputDate(text);
             break;
         case 'intime':
-            output(text + '\n');
+            outputTime(text);
+            break;
+        case 'incode':
+            outputCode(text);
+            break;
+        case 'inattachments':
+            break;
+        case 'inattachment':
+            output(text.split('&lrm')[0] + '\n');
+            output (attributes.href + '\n');
             break;
         }
     },
 
     onclosetag: function (tagname) {
         switch (state) {
-        case 'inPostText':
+        case 'inpost':
             if (tagname === 'blockquote') {
                 state = 'initial';
             }
@@ -145,6 +210,20 @@ var parser = new htmlparser.Parser({
         case 'intime':
             if (tagname === 'span') {
                 state = 'indate';
+            }
+            break;
+        case 'incode':
+            if (tagname === 'pre') {
+                state = 'inpost';
+            }
+        case 'inattachments':
+            if (tagname === 'div') {
+                state = 'initial';
+            }
+            break;
+        case 'inattachment':
+            if (tagname === 'a') {
+                state = 'inattachments';
             }
             break;
         }
