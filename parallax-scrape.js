@@ -29,33 +29,44 @@ function output(string) {
 }
 
 // Pretty print the post text, max 80 chars per line.
-function prettyPrintPost(text) {
+function prettyPrintPost(text, indent) {
     var words = [],
         lineLength = 0,
         word,
+        indentStr = '',
         i;
+
+    // Make a string of spaces for indenting with
+    indent = indent || 0;
+    for (i = 0; i < indent; i += 1) {
+        indentStr += ' ';
+    }
 
     // Replace all HTML quote entities
     text = text.replace(/&quot;/g, '"');
 
-    // Replace stupid unicode separator line thingy
-    text = text.replace(/&#9620;/g, '_'); 
+    // Replace stupid unicode separator line thingies
+    text = text.replace(/&#9620;/g, '_');
 
     // Split text into words.
     words = text.trim().split(" ");
 
+    output(indentStr);
+    lineLength = indent;
+
     // Output the words of lines of less than maximum length
     for (i = 0; i < words.length; i += 1) {
         word = words[i];
-        if ((lineLength + word.length) > 80) {
-            output("\n");
-            lineLength = 0;
-        } else {
+        if (word.length > 0) {
+            if ((lineLength + word.length) > 80) {
+                output('\n' + indentStr);
+                lineLength = indent;
+            }
+            output(word + ' ');
             lineLength += word.length + 1;
         }
-        output(word + " ");
     }
-    output("\n");
+    output('\n');
 }
 
 // Pretty print dates
@@ -100,18 +111,17 @@ function prettyPrintCode(text) {
     }
 }
 
-
 function outputPost(text) {
     prettyPrintPost(text);
 }
 
 function outputUser(text) {
-    output(text + '\n');    
-    output('\n--------------------\n');
+    output(text);
+    output('\n--------------------------------------------------------------------------------\n');
 }
 
 function outputDate(text) {
-    output('\n--------------------\n');
+    output('\n--------------------------------------------------------------------------------\n');
     prettyPrintDate(text);
     output(', ');
 }
@@ -124,6 +134,9 @@ function outputCode(text) {
     prettyPrintCode(text);
 }
 
+function outputQuote(text) {
+    prettyPrintPost(text, 4);
+}
 
 // Create an HTML parser
 var parser = new htmlparser.Parser({
@@ -148,10 +161,22 @@ var parser = new htmlparser.Parser({
             if (tagname === 'pre' && attribs.class === 'bbcode_code') {
                 state = 'incode';
             }
+            if (tagname === 'div' && attribs.class === 'bbcode_quote') {
+                state = 'inbbcode_quote';
+            }
+            break;
+        case 'inbbcode_quote':
+            if (tagname === 'div' && attribs.class === 'quote_container') {
+                state = 'inquote_container';
+            }
+            break;
+        case 'inquote_container':
+            if (tagname === 'div' && attribs.class === 'bbcode_quote_container') {
+                state = 'inbbcode_quote_container';
+            }
             break;
         case 'inattachments':
             if (tagname === 'a') {
-                console.log (attribs.href);
                 attributes = attribs;
                 state = 'inattachment';
             }
@@ -181,51 +206,36 @@ var parser = new htmlparser.Parser({
         case 'incode':
             outputCode(text);
             break;
+        case 'inquote_container':
+            outputQuote(text);
+            break;
         case 'inattachments':
             break;
         case 'inattachment':
             output(text.split('&lrm')[0] + '\n');
-            output (attributes.href + '\n');
+            output(attributes.href + '\n');
             break;
         }
     },
 
     onclosetag: function (tagname) {
-        switch (state) {
-        case 'inpost':
-            if (tagname === 'blockquote') {
-                state = 'initial';
-            }
-            break;
-        case 'inparauser':
-            if (tagname === 'span') {
-                state = 'initial';
-            }
-            break;
-        case 'indate':
-            if (tagname === 'span') {
-                state = 'initial';
-            }
-            break;
-        case 'intime':
-            if (tagname === 'span') {
-                state = 'indate';
-            }
-            break;
-        case 'incode':
-            if (tagname === 'pre') {
-                state = 'inpost';
-            }
-        case 'inattachments':
-            if (tagname === 'div') {
-                state = 'initial';
-            }
-            break;
-        case 'inattachment':
-            if (tagname === 'a') {
-                state = 'inattachments';
-            }
-            break;
+        // Curent state,              tag,                next state
+        var table = {
+            initial:                  {tag: '',           nextState: ''                 },
+            inpost:                   {tag: 'blockquote', nextState: 'initial'          },
+            inparauser:               {tag: 'span',       nextState: 'initial'          },
+            indate:                   {tag: 'span',       nextState: 'initial'          },
+            intime:                   {tag: 'span',       nextState: 'indate'           },
+            incode:                   {tag: 'pre',        nextState: 'inpost'           },
+            inbbcode_quote:           {tag: 'div',        nextState: 'inpost'           },
+            inquote_container:        {tag: 'div',        nextState: 'inbbcode_quote'   },
+            inbbcode_quote_container: {tag: 'div',        nextState: 'inquote_container'},
+            inattachments:            {tag: 'div',        nextState: 'initial'          },
+            inattachment:             {tag: 'a',          nextState: 'inattachments'    }
+        };
+
+        if (tagname === table[state].tag) {
+            state = table[state].nextState;
         }
     }
 });
