@@ -38,10 +38,10 @@ request(url, function (error, response, body) {
         var postcontainers = select(handler.dom, '.postcontainer');
         postcontainers.forEach(function(post) {
 
-            var parauser = select(post, 'span .parauser');
+            var parauser = select(post, 'span.parauser');
             console.log("##################");
-            //sys.puts(sys.inspect(parauser[0], false, null));
-            sys.puts(sys.inspect(post), false, null);
+            sys.puts(sys.inspect(parauser[0], false, null));
+            //sys.puts(sys.inspect(post), false, null);
             console.log("##################");
         });
     }
