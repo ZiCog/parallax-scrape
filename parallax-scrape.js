@@ -9,9 +9,12 @@
 var request = require("request");
 var htmlparser = require("htmlparser2");
 
-// The forum page's URL
-var url = 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog/page2';
-//var url = 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
+// Get forum page's URL from program arguments.
+var url = process.argv[2];
+
+// Default the url if there wasn't one, just for testing
+url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog/page2';
+// url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
 
 // Parser state.
 var state = 'initial';
