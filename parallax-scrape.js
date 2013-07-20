@@ -13,8 +13,8 @@ var htmlparser = require("htmlparser2");
 var url = process.argv[2];
 
 // Default the url if there wasn't one, just for testing
-url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog/page2';
-// url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
+url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
+//url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
 
 // Parser state.
 var state = 'initial';
@@ -141,54 +141,52 @@ function outputQuote(text) {
     prettyPrintPost(text, 4);
 }
 
+function saveAttribs(attribs) {
+    attributes = attribs;
+}
+
 // Create an HTML parser
 var parser = new htmlparser.Parser({
 
     onopentag: function (tagname, attribs) {
-        switch (state) {
-        case 'initial':
-	        if (tagname === 'blockquote' && attribs.class === 'postcontent restore ') {
-                state = 'inpost';
+        var i, p,
+
+	    //  state,    tag,          class,                           action,              next state
+            table = {
+                initial: [
+                    {tag: 'blockquote', class: 'postcontent restore ',   action: undefined,   nextState: 'inpost'},
+                    {tag: 'span',       class: 'parauser',               action: undefined,   nextState:  'inparauser'},
+                    {tag: 'span',       class: 'date',                   action: undefined,   nextState: 'indate'},
+                    {tag: 'div',        class: 'attachments',            action: undefined,   nextState: 'inattachments'}
+                ],
+                inpost: [
+                    {tag: 'pre',        class: 'bbcode_code',            action: undefined,   nextState: 'incode'},
+                    {tag: 'div',        class: 'bbcode_quote',           action: undefined,   nextState: 'inbbcode_quote'}
+                ],
+                inbbcode_quote: [
+                    {tag: 'div',        class: 'quote_container',        action: undefined,   nextState: 'inquote_container'}
+                ],
+                inquote_container: [
+                    {tag: 'div',        class: 'bbcode_quote_container', action: undefined,   nextState: 'inbbcode_quote_container'}
+                ],
+                inattachments: [
+                    {tag: 'a',          class: undefined,                action: saveAttribs, nextState: 'inattachment'}
+                ],
+                indate: [
+                    {tag: 'span',       class: 'time',                   action: undefined,   nextState: 'intime'}
+                ]
+            };
+        p = table[state];
+        if (typeof p !== 'undefined') {
+            for (i = 0; i < p.length; i += 1) {
+                if ((p[i].tag === tagname) && (p[i].class === attribs.class)) {
+                    if (typeof p[i].action === 'function') {
+                        p[i].action(attribs);
+                    }
+                    state = p[i].nextState;
+                    break;
+                }
             }
-	        if (tagname === 'span' && attribs.class === 'parauser') {
-                state = 'inparauser';
-            }
-            if (tagname === 'span' && attribs.class === 'date') {
-                state = 'indate';
-            }
-            if (tagname === 'div' && attribs.class === 'attachments') {
-                state = 'inattachments';
-            }
-            break;
-        case 'inpost':
-            if (tagname === 'pre' && attribs.class === 'bbcode_code') {
-                state = 'incode';
-            }
-            if (tagname === 'div' && attribs.class === 'bbcode_quote') {
-                state = 'inbbcode_quote';
-            }
-            break;
-        case 'inbbcode_quote':
-            if (tagname === 'div' && attribs.class === 'quote_container') {
-                state = 'inquote_container';
-            }
-            break;
-        case 'inquote_container':
-            if (tagname === 'div' && attribs.class === 'bbcode_quote_container') {
-                state = 'inbbcode_quote_container';
-            }
-            break;
-        case 'inattachments':
-            if (tagname === 'a') {
-                attributes = attribs;
-                state = 'inattachment';
-            }
-            break;
-        case 'indate':
-            if (tagname === 'span' && attribs.class === 'time') {
-                state = 'intime';
-            }
-            break;
         }
     },
 
