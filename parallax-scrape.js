@@ -13,8 +13,8 @@ var htmlparser = require("htmlparser2");
 var url = process.argv[2];
 
 // Default the url if there wasn't one, just for testing
-//url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
-url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
+url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
+//url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
 
 // Parser state.
 var state = 'initial';
@@ -141,13 +141,19 @@ function outputQuote(text) {
     prettyPrintPost(text, 4);
 }
 
-function saveAttribs(attribs) {
+function saveAttribs(tagname, attribs) {
     attributes = attribs;
 }
 
 function outputAttachment(text) {
     output(text.split('&lrm')[0] + '\n');
     output(attributes.href + '\n');
+}
+
+function debugOpenTag(tagname, attribs) {
+    console.log("Debug:");
+    console.log("Tag:    ", tagname);
+    console.log("Attribs:", attribs);
 }
 
 // Create an HTML parser
@@ -172,7 +178,9 @@ var parser = new htmlparser.Parser({
                     {tag: 'div',        class: 'quote_container',        action: undefined,   nextState: 'inquote_container'}
                 ],
                 inquote_container: [
-                    {tag: 'div',        class: 'bbcode_quote_container', action: undefined,   nextState: 'inbbcode_quote_container'}
+                    {tag: 'div',        class: 'bbcode_quote_container', action: undefined,   nextState: 'inbbcode_quote_container'},
+                    {tag: 'div',        class: 'mmessage',               action: undefined,   nextState: 'inmessage'},
+                    {tag: 'div',        class: 'bbcode_postedby',        action: undefined,   nextState: 'inbbcode_postedby'}
                 ],
                 inattachments: [
                     {tag: 'a',          class: undefined,                action: saveAttribs, nextState: 'inattachment'}
@@ -186,7 +194,7 @@ var parser = new htmlparser.Parser({
             for (i = 0; i < entry.length; i += 1) {
                 if ((entry[i].tag === tagname) && (entry[i].class === attribs.class)) {
                     if (typeof entry[i].action === 'function') {
-                        entry[i].action(attribs);
+                        entry[i].action(tagname, attribs);
                     }
                     state = entry[i].nextState;
                     break;
@@ -198,14 +206,15 @@ var parser = new htmlparser.Parser({
     ontext: function (text) {
         var entry,
             table = {
-                inpost:            {action: outputPost      },
-                inparauser:        {action: outputUser      },
-                indate:            {action: outputDate      },
-                intime:            {action: outputTime      },
-                incode:            {action: outputCode      },
-                inquote_container: {action: outputQuote     },
-                inattachments:     {action: undefined       },
-                inattachment:      {action: outputAttachment}
+                inpost:                   {action: outputPost      },
+                inparauser:               {action: outputUser      },
+                indate:                   {action: outputDate      },
+                intime:                   {action: outputTime      },
+                incode:                   {action: outputCode      },
+                inquote_container:        {action: outputQuote     },
+                inbbcode_postedby:        {action: outputQuote     },
+                inmessage:                {action: outputQuote     },
+                inattachment:             {action: outputAttachment}
             };
 
         entry = table[state];
@@ -220,18 +229,19 @@ var parser = new htmlparser.Parser({
         var entry,
         // Curent state,              tag,                next state
             table = {
-//            initial:                  {tag: '',           nextState: ''                 },
-            inpost:                   {tag: 'blockquote', nextState: 'initial'          },
-            inparauser:               {tag: 'span',       nextState: 'initial'          },
-            indate:                   {tag: 'span',       nextState: 'initial'          },
-            intime:                   {tag: 'span',       nextState: 'indate'           },
-            incode:                   {tag: 'pre',        nextState: 'inpost'           },
-            inbbcode_quote:           {tag: 'div',        nextState: 'inpost'           },
-            inquote_container:        {tag: 'div',        nextState: 'inbbcode_quote'   },
-            inbbcode_quote_container: {tag: 'div',        nextState: 'inquote_container'},
-            inattachments:            {tag: 'div',        nextState: 'initial'          },
-            inattachment:             {tag: 'a',          nextState: 'inattachments'    }
-        };
+                inpost:                   {tag: 'blockquote', nextState: 'initial'          },
+                inparauser:               {tag: 'span',       nextState: 'initial'          },
+                indate:                   {tag: 'span',       nextState: 'initial'          },
+                intime:                   {tag: 'span',       nextState: 'indate'           },
+                incode:                   {tag: 'pre',        nextState: 'inpost'           },
+                inbbcode_quote:           {tag: 'div',        nextState: 'inpost'           },
+                inquote_container:        {tag: 'div',        nextState: 'inbbcode_quote'   },
+                inbbcode_quote_container: {tag: 'div',        nextState: 'inquote_container'},
+                inbbcode_postedby:        {tag: 'div',        nextState: 'inquote_container'},
+                inmessage:                {tag: 'div',        nextState: 'inquote_container'},
+                inattachments:            {tag: 'div',        nextState: 'initial'          },
+                inattachment:             {tag: 'a',          nextState: 'inattachments'    }
+            };
 
         entry = table[state];
         if (typeof entry !== 'undefined') {
