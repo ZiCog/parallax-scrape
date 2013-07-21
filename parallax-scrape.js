@@ -145,6 +145,11 @@ function saveAttribs(attribs) {
     attributes = attribs;
 }
 
+function outputAttachment(text) {
+    output(text.split('&lrm')[0] + '\n');
+    output(attributes.href + '\n');
+}
+
 // Create an HTML parser
 var parser = new htmlparser.Parser({
 
@@ -191,31 +196,23 @@ var parser = new htmlparser.Parser({
     },
 
     ontext: function (text) {
-        switch (state) {
-        case 'inpost':
-            outputPost(text);
-            break;
-        case 'inparauser':
-            outputUser(text);
-            break;
-        case 'indate':
-            outputDate(text);
-            break;
-        case 'intime':
-            outputTime(text);
-            break;
-        case 'incode':
-            outputCode(text);
-            break;
-        case 'inquote_container':
-            outputQuote(text);
-            break;
-        case 'inattachments':
-            break;
-        case 'inattachment':
-            output(text.split('&lrm')[0] + '\n');
-            output(attributes.href + '\n');
-            break;
+        var p,
+            table = {
+                inpost:            {action: outputPost      },
+                inparauser:        {action: outputUser      },
+                indate:            {action: outputDate      },
+                intime:            {action: outputTime      },
+                incode:            {action: outputCode      },
+                inquote_container: {action: outputQuote     },
+                inattachments:     {action: undefined       },
+                inattachment:      {action: outputAttachment}
+            };
+
+        p = table[state];
+        if (typeof p !== 'undefined') {
+            if (typeof p.action === 'function') {
+                p.action(text);
+            }
         }
     },
 
