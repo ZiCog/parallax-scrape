@@ -13,8 +13,8 @@ var htmlparser = require("htmlparser2");
 var url = process.argv[2];
 
 // Default the url if there wasn't one, just for testing
-url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
-//url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
+//url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
+url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
 
 // Parser state.
 var state = 'initial';
@@ -179,7 +179,7 @@ var parser = new htmlparser.Parser({
                 ],
                 inquote_container: [
                     {tag: 'div',        class: 'bbcode_quote_container', action: undefined,   nextState: 'inbbcode_quote_container'},
-                    {tag: 'div',        class: 'mmessage',               action: undefined,   nextState: 'inmessage'},
+                    {tag: 'div',        class: 'message',                action: undefined,   nextState: 'inmessage'},
                     {tag: 'div',        class: 'bbcode_postedby',        action: undefined,   nextState: 'inbbcode_postedby'}
                 ],
                 inattachments: [
