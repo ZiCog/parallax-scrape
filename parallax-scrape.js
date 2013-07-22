@@ -25,7 +25,6 @@ var attributes;
 // List of attachments to posts found in page
 var attachments = [];
 
-
 // Output function. Just write string to standard out.
 function output(string) {
     process.stdout.write(string);
@@ -114,17 +113,21 @@ function prettyPrintCode(text) {
     }
 }
 
+function outputSectionBreak() {
+    output('\n--------------------------------------------------------------------------------\n');
+}
+
 function outputPost(text) {
     prettyPrintPost(text);
 }
 
 function outputUser(text) {
     output(text);
-    output('\n--------------------------------------------------------------------------------\n');
+    outputSectionBreak();
 }
 
 function outputDate(text) {
-    output('\n--------------------------------------------------------------------------------\n');
+    outputSectionBreak();
     prettyPrintDate(text);
     output(', ');
 }
@@ -146,8 +149,16 @@ function saveAttribs(tagname, attribs) {
 }
 
 function outputAttachment(text) {
-    output(text.split('&lrm')[0] + '\n');
-    output(attributes.href + '\n');
+    var id,
+        attachment = {};
+
+    id = attributes.href.match(/attachmentid=[0-9]+/)[0];
+    id = id.match(/[0-9]+/)[0];
+    attachment.id = id;
+    attachment.name = text = text.split('&lrm')[0];
+    attachments.push(attachment);
+
+    output('Attachment: ' + attachment.name + ' id: ' + attachment.id  + '\n');
 }
 
 function debugOpenTag(tagname, attribs) {
@@ -156,60 +167,61 @@ function debugOpenTag(tagname, attribs) {
     console.log("Attribs:", attribs);
 }
 
-                //  state,    tag,          class,                           action,              next state
+//  state,    tag,          class,                           action,              next state
 var openTagTable = {
-                initial: [
-                    {tag: 'blockquote', class: 'postcontent restore ',   action: undefined,   nextState: 'inpost'},
-                    {tag: 'span',       class: 'parauser',               action: undefined,   nextState: 'inparauser'},
-                    {tag: 'span',       class: 'date',                   action: undefined,   nextState: 'indate'},
-                    {tag: 'div',        class: 'attachments',            action: undefined,   nextState: 'inattachments'}
-                ],
-                inpost: [
-                    {tag: 'pre',        class: 'bbcode_code',            action: undefined,   nextState: 'incode'},
-                    {tag: 'div',        class: 'bbcode_quote',           action: undefined,   nextState: 'inbbcode_quote'}
-                ],
-                inbbcode_quote: [
-                    {tag: 'div',        class: 'quote_container',        action: undefined,   nextState: 'inquote_container'}
-                ],
-                inquote_container: [
-                    {tag: 'div',        class: 'bbcode_quote_container', action: undefined,   nextState: 'inbbcode_quote_container'},
-                    {tag: 'div',        class: 'message',                action: undefined,   nextState: 'inmessage'},
-                    {tag: 'div',        class: 'bbcode_postedby',        action: undefined,   nextState: 'inbbcode_postedby'}
-                ],
-                inattachments: [
-                    {tag: 'a',          class: undefined,                action: saveAttribs, nextState: 'inattachment'}
-                ],
-                indate: [
-                    {tag: 'span',       class: 'time',                   action: undefined,   nextState: 'intime'}
-                ]
-            };
+    initial: [
+        {tag: 'blockquote', class: 'postcontent restore ',   action: undefined,   nextState: 'inpost'},
+        {tag: 'span',       class: 'parauser',               action: undefined,   nextState: 'inparauser'},
+        {tag: 'span',       class: 'date',                   action: undefined,   nextState: 'indate'},
+        {tag: 'div',        class: 'attachments',            action: undefined,   nextState: 'inattachments'}
+    ],
+    inpost: [
+        {tag: 'pre',        class: 'bbcode_code',            action: undefined,   nextState: 'incode'},
+        {tag: 'div',        class: 'bbcode_quote',           action: undefined,   nextState: 'inbbcode_quote'}
+    ],
+    inbbcode_quote: [
+        {tag: 'div',        class: 'quote_container',        action: undefined,   nextState: 'inquote_container'}
+    ],
+    inquote_container: [
+        {tag: 'div',        class: 'bbcode_quote_container', action: undefined,   nextState: 'inbbcode_quote_container'},
+        {tag: 'div',        class: 'message',                action: undefined,   nextState: 'inmessage'},
+        {tag: 'div',        class: 'bbcode_postedby',        action: undefined,   nextState: 'inbbcode_postedby'}
+    ],
+    inattachments: [
+        {tag: 'a',          class: undefined,                action: saveAttribs, nextState: 'inattachment'}
+    ],
+    indate: [
+        {tag: 'span',       class: 'time',                   action: undefined,   nextState: 'intime'}
+    ]
+};
 
 var textTable = {
-                inpost:                   {action: outputPost      },
-                inparauser:               {action: outputUser      },
-                indate:                   {action: outputDate      },
-                intime:                   {action: outputTime      },
-                incode:                   {action: outputCode      },
-                inquote_container:        {action: outputQuote     },
-                inbbcode_postedby:        {action: outputQuote     },
-                inmessage:                {action: outputQuote     },
-                inattachment:             {action: outputAttachment}
-            };
-                // Curent state,          tag,                next state
+    inpost:                   {action: outputPost      },
+    inparauser:               {action: outputUser      },
+    indate:                   {action: outputDate      },
+    intime:                   {action: outputTime      },
+    incode:                   {action: outputCode      },
+    inquote_container:        {action: outputQuote     },
+    inbbcode_postedby:        {action: outputQuote     },
+    inmessage:                {action: outputQuote     },
+    inattachment:             {action: outputAttachment}
+};
+
+//  Curent state,             tag,                next state
 var closeTagTable = {
-                inpost:                   {tag: 'blockquote', nextState: 'initial'          },
-                inparauser:               {tag: 'span',       nextState: 'initial'          },
-                indate:                   {tag: 'span',       nextState: 'initial'          },
-                intime:                   {tag: 'span',       nextState: 'indate'           },
-                incode:                   {tag: 'pre',        nextState: 'inpost'           },
-                inbbcode_quote:           {tag: 'div',        nextState: 'inpost'           },
-                inquote_container:        {tag: 'div',        nextState: 'inbbcode_quote'   },
-                inbbcode_quote_container: {tag: 'div',        nextState: 'inquote_container'},
-                inbbcode_postedby:        {tag: 'div',        nextState: 'inquote_container'},
-                inmessage:                {tag: 'div',        nextState: 'inquote_container'},
-                inattachments:            {tag: 'div',        nextState: 'initial'          },
-                inattachment:             {tag: 'a',          nextState: 'inattachments'    }
-            };
+    inpost:                   {tag: 'blockquote', nextState: 'initial'          },
+    inparauser:               {tag: 'span',       nextState: 'initial'          },
+    indate:                   {tag: 'span',       nextState: 'initial'          },
+    intime:                   {tag: 'span',       nextState: 'indate'           },
+    incode:                   {tag: 'pre',        nextState: 'inpost'           },
+    inbbcode_quote:           {tag: 'div',        nextState: 'inpost'           },
+    inquote_container:        {tag: 'div',        nextState: 'inbbcode_quote'   },
+    inbbcode_quote_container: {tag: 'div',        nextState: 'inquote_container'},
+    inbbcode_postedby:        {tag: 'div',        nextState: 'inquote_container'},
+    inmessage:                {tag: 'div',        nextState: 'inquote_container'},
+    inattachments:            {tag: 'div',        nextState: 'initial'          },
+    inattachment:             {tag: 'a',          nextState: 'inattachments'    }
+};
 
 // Create an HTML parser
 var parser = new htmlparser.Parser({
@@ -257,11 +269,22 @@ var parser = new htmlparser.Parser({
 
 output("Fetching: " + url + '\n');
 request(url, function (error, response, body) {
+    var attachmentUrlBase = 'http://forums.parallax.com/attachment.php?attachmentid=',
+        attachmentUrl,
+        i;
+
     if (error) {
         console.log(error);
     } else {
         parser.write(body);
         parser.end();
+
+        outputSectionBreak();
+        console.log('The following attachments were found:');
+        for (i = 0; i < attachments.length; i += 1) {
+            attachmentUrl = attachmentUrlBase + attachments[i].id;
+            console.log(attachments[i].name + " : " + attachmentUrl);
+        }
     }
 });
 
