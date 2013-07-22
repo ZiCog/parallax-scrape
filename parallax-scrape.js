@@ -13,8 +13,8 @@ var htmlparser = require("htmlparser2");
 var url = process.argv[2];
 
 // Default the url if there wasn't one, just for testing
-//url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
-url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
+url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
+//url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
 
 // Parser state.
 var state = 'initial';
@@ -156,14 +156,8 @@ function debugOpenTag(tagname, attribs) {
     console.log("Attribs:", attribs);
 }
 
-// Create an HTML parser
-var parser = new htmlparser.Parser({
-
-    onopentag: function (tagname, attribs) {
-        var i, entry,
-
-	    //  state,    tag,          class,                           action,              next state
-            table = {
+                //  state,    tag,          class,                           action,              next state
+var openTagTable = {
                 initial: [
                     {tag: 'blockquote', class: 'postcontent restore ',   action: undefined,   nextState: 'inpost'},
                     {tag: 'span',       class: 'parauser',               action: undefined,   nextState: 'inparauser'},
@@ -189,23 +183,8 @@ var parser = new htmlparser.Parser({
                     {tag: 'span',       class: 'time',                   action: undefined,   nextState: 'intime'}
                 ]
             };
-        entry = table[state];
-        if (typeof entry !== 'undefined') {
-            for (i = 0; i < entry.length; i += 1) {
-                if ((entry[i].tag === tagname) && (entry[i].class === attribs.class)) {
-                    if (typeof entry[i].action === 'function') {
-                        entry[i].action(tagname, attribs);
-                    }
-                    state = entry[i].nextState;
-                    break;
-                }
-            }
-        }
-    },
 
-    ontext: function (text) {
-        var entry,
-            table = {
+var textTable = {
                 inpost:                   {action: outputPost      },
                 inparauser:               {action: outputUser      },
                 indate:                   {action: outputDate      },
@@ -216,19 +195,8 @@ var parser = new htmlparser.Parser({
                 inmessage:                {action: outputQuote     },
                 inattachment:             {action: outputAttachment}
             };
-
-        entry = table[state];
-        if (typeof entry !== 'undefined') {
-            if (typeof entry.action === 'function') {
-                entry.action(text);
-            }
-        }
-    },
-
-    onclosetag: function (tagname) {
-        var entry,
-        // Curent state,              tag,                next state
-            table = {
+                // Curent state,          tag,                next state
+var closeTagTable = {
                 inpost:                   {tag: 'blockquote', nextState: 'initial'          },
                 inparauser:               {tag: 'span',       nextState: 'initial'          },
                 indate:                   {tag: 'span',       nextState: 'initial'          },
@@ -243,7 +211,42 @@ var parser = new htmlparser.Parser({
                 inattachment:             {tag: 'a',          nextState: 'inattachments'    }
             };
 
-        entry = table[state];
+// Create an HTML parser
+var parser = new htmlparser.Parser({
+
+    onopentag: function (tagname, attribs) {
+        var i,
+            entry;
+
+        entry = openTagTable[state];
+        if (typeof entry !== 'undefined') {
+            for (i = 0; i < entry.length; i += 1) {
+                if ((entry[i].tag === tagname) && (entry[i].class === attribs.class)) {
+                    if (typeof entry[i].action === 'function') {
+                        entry[i].action(tagname, attribs);
+                    }
+                    state = entry[i].nextState;
+                    break;
+                }
+            }
+        }
+    },
+
+    ontext: function (text) {
+        var entry;
+
+        entry = textTable[state];
+        if (typeof entry !== 'undefined') {
+            if (typeof entry.action === 'function') {
+                entry.action(text);
+            }
+        }
+    },
+
+    onclosetag: function (tagname) {
+        var entry;
+
+        entry = closeTagTable[state];
         if (typeof entry !== 'undefined') {
             if (tagname === entry.tag) {
                 state = entry.nextState;
