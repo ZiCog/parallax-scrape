@@ -13,7 +13,13 @@ Output goes to standard output.
 Install
 -------
 
+First install node.js. Linux, Mac and Windows node.js downloads are available here: http://nodejs.org/
+You can get parallax-scrape from a zip file on github or fetch it as a git repo:
+
     $ git clone https://github.com/ZiCog/parallax-scrape.git
+
+A couple of node.js modules are required:
+    
     $ cd parallax-scrape
     $ npm install request
     $ npm install htmlparser2
