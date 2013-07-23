@@ -282,7 +282,7 @@ function fetchPages(url, firstPage, lastPage) {
         pageNumber = firstPage;
         pageUrl = url + '/page' + pageNumber;
 
-        output("Page# " + pageNumber + '\n');
+        output('\n' + "Page# " + pageNumber + '\n');
 
         request(pageUrl, function (error, response, body) {
             var attachmentUrl;
