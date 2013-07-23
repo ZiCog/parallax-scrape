@@ -9,13 +9,6 @@
 var request = require("request");
 var htmlparser = require("htmlparser2");
 
-// Get forum page's URL from program arguments.
-var url = process.argv[2];
-
-// Default the url if there wasn't one, just for testing
-url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
-//url = url || 'http://forums.parallax.com/showthread.php/149173-Forum-scraping?p=1195982#post1195982';
-
 // Parser state.
 var state = 'initial';
 
@@ -289,7 +282,7 @@ function fetchPages(url, firstPage, lastPage) {
         pageNumber = firstPage;
         pageUrl = url + '/page' + pageNumber;
 
-        output("Fetching: " + pageUrl + '\n');
+        output("Page# " + pageNumber + '\n');
 
         request(pageUrl, function (error, response, body) {
             var attachmentUrl;
@@ -311,24 +304,32 @@ function fetchPages(url, firstPage, lastPage) {
 }
 
 (function main() {
-    var pageNumber,
-        page = url.match(/\/page[0-9]+/),
+    // Get forum page's URL from program arguments.
+    var url = process.argv[2],
+        pageNumber,
+        page,
         firstPage,
         lastPage;
 
-    if (page) {
-        pageNumber = parseInt(page[0].match(/[0-9]+/), 10);
-        output("Page# " + pageNumber + '\n');
+    // Default URL for testing.    
+    url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
+
+    // Args 3 and 4 give the range of pages to be fetched.
+    if ((typeof (process.argv[3]) !== 'undefined') &&
+            (typeof (process.argv[4]) !== 'undefined')) {
+        firstPage = parseInt(process.argv[3], 10);
+        lastPage = parseInt(process.argv[4], 10);
+        fetchPages(url, firstPage, lastPage);
+    } else {
+        // Otherwise take the page number from the url.
+        page = url.match(/\/page[0-9]+/);
+        if (page) {
+            pageNumber = parseInt(page[0].match(/[0-9]+/), 10);
+        } else {
+            pageNumber = 1;
+        }
         url = url.replace(/\/page[0-9]+/, '');
         fetchPages(url, pageNumber, pageNumber);
-    } else {
-        output('No page number given');
-        if ((process.argv[3] !== 'undefined') &&
-                (process.argv[4] !== 'undefined')) {
-            firstPage = parseInt(process.argv[3], 10);
-            lastPage = parseInt(process.argv[4], 10);
-            fetchPages(url, firstPage, lastPage);
-        }
     }
 }());
 
