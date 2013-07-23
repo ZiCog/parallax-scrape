@@ -25,6 +25,9 @@ var attributes;
 // List of attachments to posts found in page
 var attachments = [];
 
+// Base part of an attachment URL
+var attachmentUrlBase = 'http://forums.parallax.com/attachment.php?attachmentid=';
+
 // Output function. Just write string to standard out.
 function output(string) {
     process.stdout.write(string);
@@ -267,25 +270,65 @@ var parser = new htmlparser.Parser({
     }
 });
 
-output("Fetching: " + url + '\n');
-request(url, function (error, response, body) {
-    var attachmentUrlBase = 'http://forums.parallax.com/attachment.php?attachmentid=',
-        attachmentUrl,
-        i;
+function displayAttachments() {
+    var attachmentUrl, i;
+    outputSectionBreak();
+    console.log('The following attachments were found:');
+    for (i = 0; i < attachments.length; i += 1) {
+        attachmentUrl = attachmentUrlBase + attachments[i].id;
+        console.log(attachments[i].name + " : " + attachmentUrl);
+    }
+}
 
-    if (error) {
-        console.log(error);
+function fetchPages(url, firstPage, lastPage) {
+    var pageNumber,
+        pageUrl;
+
+    if ((typeof (firstPage) === 'number') &&
+            (typeof (lastPage) === 'number')) {
+        pageNumber = firstPage;
+        pageUrl = url + '/page' + pageNumber;
+
+        output("Fetching: " + pageUrl + '\n');
+
+        request(pageUrl, function (error, response, body) {
+            var attachmentUrl;
+
+            if (error) {
+                console.log(error);
+            } else {
+                parser.write(body);
+                parser.end();
+
+                if (pageNumber < lastPage) {
+                    fetchPages(url, pageNumber + 1, lastPage);
+                } else {
+                    displayAttachments();
+                }
+            }
+        });
+    }
+}
+
+(function main() {
+    var pageNumber,
+        page = url.match(/\/page[0-9]+/),
+        firstPage,
+        lastPage;
+
+    if (page) {
+        pageNumber = parseInt(page[0].match(/[0-9]+/), 10);
+        output("Page# " + pageNumber + '\n');
+        url = url.replace(/\/page[0-9]+/, '');
+        fetchPages(url, pageNumber, pageNumber);
     } else {
-        parser.write(body);
-        parser.end();
-
-        outputSectionBreak();
-        console.log('The following attachments were found:');
-        for (i = 0; i < attachments.length; i += 1) {
-            attachmentUrl = attachmentUrlBase + attachments[i].id;
-            console.log(attachments[i].name + " : " + attachmentUrl);
+        output('No page number given');
+        if ((process.argv[3] !== 'undefined') &&
+                (process.argv[4] !== 'undefined')) {
+            firstPage = parseInt(process.argv[3], 10);
+            lastPage = parseInt(process.argv[4], 10);
+            fetchPages(url, firstPage, lastPage);
         }
     }
-});
-
+}());
 
