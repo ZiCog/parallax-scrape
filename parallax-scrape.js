@@ -8,6 +8,7 @@
 
 var request = require("request");
 var htmlparser = require("htmlparser2");
+var fs = require('fs');
 
 // Parser state.
 var state = 'initial';
@@ -278,34 +279,71 @@ function displayAttachments() {
     }
 }
 
+function fetchAttachments() {
+    var attachmentList = [],
+        attachment,
+        attachmentUrl,
+        name;
+
+    outputSectionBreak();
+
+    // Move attachments into a list so we can iterate over them easily.
+    for (name in attachments) {
+        if (attachments.hasOwnProperty(name)) {
+            attachment = {};
+            attachment.name = name;
+            attachment.id = attachments[name];
+            attachmentList.push(attachment);
+        }
+    }
+
+    (function fetchAttachment(i) {
+        attachmentUrl = attachmentUrlBase + attachmentList[i].id;
+        console.log("Fetching attachment: " + attachmentList[i].name + " : " + attachmentUrl);
+        request(attachmentUrl, function (error, response, body) {
+            if (error) {
+                console.log("Error fetching attachment: " + attachmentUrl);
+            } else {
+                fs.writeFile(attachmentList[i].name, body, function (err) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        if (i < attachmentList.length - 1) {
+                            fetchAttachment(i + 1);
+                        }
+                    }
+                });
+            }
+        });
+    }(0));
+}
+
 function fetchPages(url, firstPage, lastPage) {
     var pageNumber,
         pageUrl;
 
-    if ((typeof (firstPage) === 'number') &&
-            (typeof (lastPage) === 'number')) {
-        pageNumber = firstPage;
-        pageUrl = url + '/page' + pageNumber;
+    pageNumber = firstPage;
+    pageUrl = url + '/page' + pageNumber;
 
-        output('\n' + "Page# " + pageNumber + '\n');
+    output('\n' + "Page# " + pageNumber + '\n');
 
-        request(pageUrl, function (error, response, body) {
-            var attachmentUrl;
+    request(pageUrl, function (error, response, body) {
+        var attachmentUrl;
 
-            if (error) {
-                console.log(error);
+        if (error) {
+            console.log(error);
+        } else {
+            parser.write(body);
+            parser.end();
+
+            if (pageNumber < lastPage) {
+                fetchPages(url, pageNumber + 1, lastPage);
             } else {
-                parser.write(body);
-                parser.end();
-
-                if (pageNumber < lastPage) {
-                    fetchPages(url, pageNumber + 1, lastPage);
-                } else {
-                    displayAttachments();
-                }
+                displayAttachments();
+                fetchAttachments();
             }
-        });
-    }
+        }
+    });
 }
 
 (function main() {
