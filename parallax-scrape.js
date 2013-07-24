@@ -314,6 +314,17 @@ function fetchPages(url, firstPage, lastPage) {
     // Default URL for testing.    
     url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
 
+    // Extract page number from url
+    page = url.match(/\/page[0-9]+/);
+    if (page) {
+        pageNumber = parseInt(page[0].match(/[0-9]+/), 10);
+    } else {
+        pageNumber = 1;
+    }
+
+    // Remove page number from url
+    url = url.replace(/\/page[0-9]+/, '');
+
     // Args 3 and 4 give the range of pages to be fetched.
     if ((typeof (process.argv[3]) !== 'undefined') &&
             (typeof (process.argv[4]) !== 'undefined')) {
@@ -322,13 +333,6 @@ function fetchPages(url, firstPage, lastPage) {
         fetchPages(url, firstPage, lastPage);
     } else {
         // Otherwise take the page number from the url.
-        page = url.match(/\/page[0-9]+/);
-        if (page) {
-            pageNumber = parseInt(page[0].match(/[0-9]+/), 10);
-        } else {
-            pageNumber = 1;
-        }
-        url = url.replace(/\/page[0-9]+/, '');
         fetchPages(url, pageNumber, pageNumber);
     }
 }());
