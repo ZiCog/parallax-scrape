@@ -16,7 +16,7 @@ var state = 'initial';
 var attributes;
 
 // List of attachments to posts found in page
-var attachments = [];
+var attachments = {};
 
 // Base part of an attachment URL
 var attachmentUrlBase = 'http://forums.parallax.com/attachment.php?attachmentid=';
@@ -146,15 +146,18 @@ function saveAttribs(tagname, attribs) {
 
 function outputAttachment(text) {
     var id,
+        name,
         attachment = {};
 
     id = attributes.href.match(/attachmentid=[0-9]+/)[0];
     id = id.match(/[0-9]+/)[0];
-    attachment.id = id;
-    attachment.name = text = text.split('&lrm')[0];
-    attachments.push(attachment);
+    name = text.split('&lrm')[0];
 
-    output('Attachment: ' + attachment.name + ' id: ' + attachment.id  + '\n');
+    if (attachments[name]) {
+        console.log("Duplicate attachment name: ", name);
+    }
+    attachments[name] = id;
+    output('Attachment: ' + name + ' id: ' + id  + '\n');
 }
 
 function debugOpenTag(tagname, attribs) {
@@ -264,12 +267,14 @@ var parser = new htmlparser.Parser({
 });
 
 function displayAttachments() {
-    var attachmentUrl, i;
+    var attachmentUrl, name;
+
     outputSectionBreak();
     console.log('The following attachments were found:');
-    for (i = 0; i < attachments.length; i += 1) {
-        attachmentUrl = attachmentUrlBase + attachments[i].id;
-        console.log(attachments[i].name + " : " + attachmentUrl);
+    for (name in attachments) {
+        if (attachments.hasOwnProperty(name)) {
+            console.log(name + " : " + attachmentUrlBase + attachments[name]);
+        }
     }
 }
 
