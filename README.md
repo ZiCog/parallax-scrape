@@ -18,12 +18,12 @@ You can get parallax-scrape from a zip file on github or fetch it as a git repo:
 
     $ git clone https://github.com/ZiCog/parallax-scrape.git
 
-A couple of node.js modules are required:
+A few node.js modules are required:
     
     $ cd parallax-scrape
     $ npm install request
     $ npm install htmlparser2
-
+    $ npm install ent
 
 Run
 ---
@@ -45,6 +45,5 @@ TODO
 ----
 
     0) Better output format.
-    1) Download all post attachments.
 
 

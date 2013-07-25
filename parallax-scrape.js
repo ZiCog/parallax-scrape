@@ -9,6 +9,7 @@
 var request = require("request");
 var htmlparser = require("htmlparser2");
 var fs = require('fs');
+var ent = require("ent");
 
 // Parser state.
 var state = 'initial';
@@ -22,30 +23,55 @@ var attachments = {};
 // Base part of an attachment URL
 var attachmentUrlBase = 'http://forums.parallax.com/attachment.php?attachmentid=';
 
+var postLineLength = 0;
+
 // Output function. Just write string to standard out.
 function output(string) {
     process.stdout.write(string);
 }
 
 // Pretty print the post text, max 80 chars per line.
-function prettyPrintPost(text, indent) {
+function prettyPrintPost(text) {
+    var words = [],
+        word,
+        i;
+
+    // Decode the HTML entities.
+    text = ent.decode(text);
+
+    // Split text into words.
+    words = text.trim().split(" ");
+
+    // Output the words of lines of less than maximum length
+    for (i = 0; i < words.length; i += 1) {
+        word = words[i];
+        if (word.length > 0) {
+            if ((postLineLength + word.length) > 80) {
+                output('\n');
+                postLineLength = 0;
+            }
+            output(word + ' ');
+            postLineLength += word.length + 1;
+        }
+    }
+}
+
+// Pretty print quote box text, max 80 chars per line.
+function prettyPrintQuote(text) {
     var words = [],
         lineLength = 0,
         word,
+        indent = 8,
         indentStr = '',
         i;
 
+    // Decode the HTML entities.
+    text = ent.decode(text);
+
     // Make a string of spaces for indenting with
-    indent = indent || 0;
     for (i = 0; i < indent; i += 1) {
         indentStr += ' ';
     }
-
-    // Replace all HTML quote entities
-    text = text.replace(/&quot;/g, '"');
-
-    // Replace stupid unicode separator line thingies
-    text = text.replace(/&#9620;/g, '_');
 
     // Split text into words.
     words = text.trim().split(" ");
@@ -67,6 +93,9 @@ function prettyPrintPost(text, indent) {
     }
     output('\n');
 }
+
+
+
 
 // Pretty print dates
 function prettyPrintDate(text) {
@@ -124,9 +153,11 @@ function outputUser(text) {
 }
 
 function outputDate(text) {
+    output('\n');
     outputSectionBreak();
     prettyPrintDate(text);
     output(', ');
+    postLineLength = 0;
 }
 
 function outputTime(text) {
@@ -138,11 +169,16 @@ function outputCode(text) {
 }
 
 function outputQuote(text) {
-    prettyPrintPost(text, 4);
+    prettyPrintQuote(text);
 }
 
 function saveAttribs(tagname, attribs) {
     attributes = attribs;
+}
+
+function leavePost(tagname, attribs) {
+    output('\n');
+    postLineLength = 0;
 }
 
 function outputAttachment(text) {
@@ -176,8 +212,10 @@ var openTagTable = {
         {tag: 'div',        class: 'attachments',            action: undefined,   nextState: 'inattachments'}
     ],
     inpost: [
-        {tag: 'pre',        class: 'bbcode_code',            action: undefined,   nextState: 'incode'},
-        {tag: 'div',        class: 'bbcode_quote',           action: undefined,   nextState: 'inbbcode_quote'}
+        {tag: 'pre',        class: 'bbcode_code',            action: leavePost,   nextState: 'incode'},
+        {tag: 'div',        class: 'bbcode_quote',           action: leavePost,   nextState: 'inbbcode_quote'},
+        {tag: 'br',         class: undefined,                action: leavePost,   nextState: 'inbr'},
+        {tag: 'a',          class: undefined,                action: leavePost,   nextState: 'inpost'}
     ],
     inbbcode_quote: [
         {tag: 'div',        class: 'quote_container',        action: undefined,   nextState: 'inquote_container'}
@@ -210,6 +248,7 @@ var textTable = {
 //  Curent state,             tag,                next state
 var closeTagTable = {
     inpost:                   {tag: 'blockquote', nextState: 'initial'          },
+    inbr:                     {tag: 'br',         nextState: 'inpost'           },
     inparauser:               {tag: 'span',       nextState: 'initial'          },
     indate:                   {tag: 'span',       nextState: 'initial'          },
     intime:                   {tag: 'span',       nextState: 'indate'           },
@@ -325,7 +364,8 @@ function fetchPages(url, firstPage, lastPage) {
     pageNumber = firstPage;
     pageUrl = url + '/page' + pageNumber;
 
-    output('\n' + "Page# " + pageNumber + '\n');
+    outputSectionBreak();
+    output('\n' + "Page# " + pageNumber);
 
     request(pageUrl, function (error, response, body) {
         var attachmentUrl;
@@ -355,7 +395,7 @@ function fetchPages(url, firstPage, lastPage) {
         lastPage;
 
     // Default URL for testing.    
-    url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog';
+    url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog/page3';
 
     // Extract page number from url
     page = url.match(/\/page[0-9]+/);
