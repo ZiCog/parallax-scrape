@@ -94,9 +94,6 @@ function prettyPrintQuote(text) {
     output('\n');
 }
 
-
-
-
 // Pretty print dates
 function prettyPrintDate(text) {
     var monthStr,
@@ -131,6 +128,9 @@ function prettyPrintDate(text) {
 function prettyPrintCode(text) {
     var lines,
         i;
+
+    // Decode the HTML entities.
+    text = ent.decode(text);
 
     lines = text.split('\n');
     for (i = 0; i < lines.length; i += 1) {
