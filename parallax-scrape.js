@@ -206,8 +206,8 @@ function debugOpenTag(tagname, attribs) {
 //  state,    tag,          class,                           action,              next state
 var openTagTable = {
     initial: [
-        {tag: 'blockquote', class: 'postcontent restore ',   action: undefined,   nextState: 'inpost'},
-        {tag: 'span',       class: 'parauser',               action: undefined,   nextState: 'inparauser'},
+        {tag: 'blockquote', class: 'postcontent',            action: undefined,   nextState: 'inpost'},
+        {tag: 'a',          class: 'username',               action: undefined,   nextState: 'inusername'},
         {tag: 'span',       class: 'date',                   action: undefined,   nextState: 'indate'},
         {tag: 'div',        class: 'attachments',            action: undefined,   nextState: 'inattachments'}
     ],
@@ -235,7 +235,7 @@ var openTagTable = {
 
 var textTable = {
     inpost:                   {action: outputPost      },
-    inparauser:               {action: outputUser      },
+    inusername:               {action: outputUser      },
     indate:                   {action: outputDate      },
     intime:                   {action: outputTime      },
     incode:                   {action: outputCode      },
@@ -249,7 +249,7 @@ var textTable = {
 var closeTagTable = {
     inpost:                   {tag: 'blockquote', nextState: 'initial'          },
     inbr:                     {tag: 'br',         nextState: 'inpost'           },
-    inparauser:               {tag: 'span',       nextState: 'initial'          },
+    inusername:               {tag: 'a',          nextState: 'initial'          },
     indate:                   {tag: 'span',       nextState: 'initial'          },
     intime:                   {tag: 'span',       nextState: 'indate'           },
     incode:                   {tag: 'pre',        nextState: 'inpost'           },
@@ -267,17 +267,35 @@ var parser = new htmlparser.Parser({
 
     onopentag: function (tagname, attribs) {
         var i,
-            entry;
+            entry,
+            re,
+            cl;
 
         entry = openTagTable[state];
         if (typeof entry !== 'undefined') {
             for (i = 0; i < entry.length; i += 1) {
-                if ((entry[i].tag === tagname) && (entry[i].class === attribs.class)) {
-                    if (typeof entry[i].action === 'function') {
-                        entry[i].action(tagname, attribs);
+
+                // Does this elements tag match an entry ?
+                if (entry[i].tag === tagname) {
+
+                    // Match any class in element (or none) with undefined class in entry
+                    if (typeof (entry[i].class) === 'undefined') {
+                        if (typeof entry[i].action === 'function') {
+                            entry[i].action(tagname, attribs);
+                        }
+                        state = entry[i].nextState;
+                        break;
                     }
-                    state = entry[i].nextState;
-                    break;
+                    // Find class in class attributes string.
+                    re = new RegExp('\\b' + entry[i].class + '\\b');
+                    cl = attribs.class || '';
+                    if (cl.search(re) >= 0) {
+                        if (typeof entry[i].action === 'function') {
+                            entry[i].action(tagname, attribs);
+                        }
+                        state = entry[i].nextState;
+                        break;
+                    }
                 }
             }
         }
@@ -334,6 +352,9 @@ function fetchAttachments() {
             attachment.id = attachments[name];
             attachmentList.push(attachment);
         }
+    }
+    if (attachmentList.length === 0) {
+        return;
     }
 
     (function fetchAttachment(i) {
@@ -395,7 +416,7 @@ function fetchPages(url, firstPage, lastPage) {
         lastPage;
 
     // Default URL for testing.    
-    url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog/page3';
+    url = url || 'http://forums.parallax.com/showthread.php/110804-ZiCog-a-Zilog-Z80-emulator-in-1-Cog/page2';
 
     // Extract page number from url
     page = url.match(/\/page[0-9]+/);
