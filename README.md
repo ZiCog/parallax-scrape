@@ -3,12 +3,13 @@ parallax-scrape
 
 node.js program to Download a single or multiple forum pages from forums.parallax.com and extract posts as plain text.
 
-The url of the page(s) and any page range to download are commandline arguments
-The text of posts is reformatted to 80 column width.
-Quote blocks within posts are indented for clarity.
-Code blocks within posts are output as is, no reformatting.
-Links to attachments to posts are extracted.
-Output goes to standard output.
+* The url of the page(s) and any page range to download are commandline arguments
+* The text of posts is reformatted to 80 column width.
+* Quote blocks within posts are indented for clarity.
+* Code blocks within posts are output as is, no reformatting.
+* Links to attachments to posts are extracted.
+* Thread text goes to standard output.
+* All attachedments are downloaded.
 
 Install
 -------
