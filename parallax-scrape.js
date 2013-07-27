@@ -360,7 +360,14 @@ function fetchAttachments() {
     (function fetchAttachment(i) {
         attachmentUrl = attachmentUrlBase + attachmentList[i].id;
         console.log("Fetching attachment: " + attachmentList[i].name + " : " + attachmentUrl);
-        request(attachmentUrl, function (error, response, body) {
+
+        var requestSettings = {
+            method: 'GET',
+            url: attachmentUrl,
+            encoding : null
+        };
+
+        request(requestSettings, function (error, response, body) {
             if (error) {
                 console.log("Error fetching attachment: " + attachmentUrl);
             } else {
